@@ -25,6 +25,7 @@ boolean currentButton = LOW;
 
 // Sensors data
 float water_temperature = 26.4;
+float water_threshold = 32;
 float last_water_temperature = 0.0;
 float temperature_delta = 0.5;
 boolean temp_is_growing = false;
@@ -53,31 +54,55 @@ void loop() {
     gui.draw_start(startShown);
     delay(100);
   } else {
-
-//    currentButton = debounce(lastButton);
-//    if (lastButton == LOW && currentButton == HIGH) {
-//      update_menu();
-//      fanIsOn = !fanIsOn;
-//    }
-//    lastButton = currentButton;
-//
     show_menu_item(menu_index);
+    delay(50);
   }
 }
 
 void menu_click() {
   update_menu();
-//  show_menu_item(menu_index);
 }
 
 void menu_item_click() {
   if (menu_index == 0) {
     fanIsOn = !fanIsOn;
-    if (fanIsOn) {
-      digitalWrite(FAN, HIGH);
+    turnFan(fanIsOn);
+  }
+}
+
+void turnFan(boolean on) {
+  if (on) {
+    digitalWrite(FAN, HIGH);
+  } else {
+    digitalWrite(FAN, LOW);
+  } 
+}
+
+void monitorWaterTemperature() {
+  unsigned long currentMillis = millis();
+  Serial.print("currentMillis: ");
+  Serial.println(currentMillis);
+  Serial.print("previousMillis: ");
+  Serial.println(previousMillis);
+  if ((unsigned long)(currentMillis - previousMillis) >= temp_measure_interval) {
+    Serial.println("Cnahging temp...");
+    if (water_temperature >= 40) {
+      water_temperature = water_temperature - 20;
     } else {
-      digitalWrite(FAN, LOW);
+      water_temperature = water_temperature + 5;
     }
+    temp_is_growing = water_temperature + temperature_delta >= last_water_temperature;
+
+    if (water_temperature >= water_threshold) {
+      Serial.println("Switching fan ON...");
+      fanIsOn = true;
+      turnFan(true);
+    } else {
+      Serial.println("Switching fan OFF...");
+      fanIsOn = false;
+      turnFan(false);
+    }
+    previousMillis = currentMillis;
   }
 }
 
@@ -90,29 +115,16 @@ void show_menu_item(int index) {
     shown_menu_items[index] = true;
   }
 
+  monitorWaterTemperature();
+  
   if (index == 0) { // Temperature
     gui.draw_temperature(fanIsOn, water_temperature, temp_is_growing, menu_index, MENU_ITEMS);
-
-    unsigned long currentMillis = millis();
-    if ((unsigned long)(currentMillis - previousMillis) >= temp_measure_interval) {
-      if (water_temperature >= 40) {
-        water_temperature = water_temperature - 20;
-      } else {
-        water_temperature = water_temperature + 5;
-      }
-      temp_is_growing = water_temperature + temperature_delta >= last_water_temperature;
-      gui.draw_temperature(fanIsOn, water_temperature, temp_is_growing, menu_index, MENU_ITEMS);
-      last_water_temperature = water_temperature;
-  
-      previousMillis = currentMillis;
-    }
+    last_water_temperature = water_temperature;
   } else if (index == 1) { // Water level
     gui.draw_water_level(water_level, menu_index, MENU_ITEMS);
   } else if (index == 2) { // Light
     gui.draw_light(light_is_on, menu_index, MENU_ITEMS);
   }
-  
-  delay(50);
 }
 
 void reset_shown_menu_items() {
