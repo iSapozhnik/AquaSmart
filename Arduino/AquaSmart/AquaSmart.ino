@@ -3,7 +3,7 @@
 AquaSmartGUI gui;
 
 int fan = 0;
-boolean fanIsOn = false;
+
 boolean startShown = false;
 
 unsigned long previousMillis = 0;
@@ -23,9 +23,15 @@ boolean currentButton = LOW;
 
 // Sensors data
 float water_temperature = 26.4;
-float last_water_temperature = 28.5;
+float last_water_temperature = 0.0;
 float temperature_delta = 0.5;
+boolean temp_is_growing = false;
+boolean fanIsOn = false;
 int temp_measure_interval = 1000 * 5; // 30 sec interval
+
+int water_level = 35;
+
+boolean light_is_on = false;
 
 void setup() {
   Serial.begin(9600);
@@ -62,24 +68,33 @@ void show_menu_item(int index) {
     reset_shown_menu_items();
     shown_menu_items[index] = true;
   }
-  
-  unsigned long currentMillis = millis();
-  if ((unsigned long)(currentMillis - previousMillis) >= temp_measure_interval) {
-    
-    if (water_temperature >= 40) {
-      water_temperature = water_temperature - 20;
-    } else {
-      water_temperature = water_temperature + 5;
-    }
-    boolean is_tem_growing = water_temperature + temperature_delta >= last_water_temperature;
-    gui.draw_temperature(fanIsOn, water_temperature, is_tem_growing, fan, menu_index, MENU_ITEMS);
-    last_water_temperature = water_temperature;
+
+  if (index == 0) { // Temperature
+    gui.draw_temperature(fanIsOn, water_temperature, temp_is_growing, fan, menu_index, MENU_ITEMS);
+
+    unsigned long currentMillis = millis();
+    if ((unsigned long)(currentMillis - previousMillis) >= temp_measure_interval) {
       
-      // Use the snapshot to set track time until next event
-      previousMillis = currentMillis;
-   }
+      if (water_temperature >= 40) {
+        water_temperature = water_temperature - 20;
+      } else {
+        water_temperature = water_temperature + 5;
+      }
+      temp_is_growing = water_temperature + temperature_delta >= last_water_temperature;
+      gui.draw_temperature(fanIsOn, water_temperature, temp_is_growing, fan, menu_index, MENU_ITEMS);
+      last_water_temperature = water_temperature;
+        
+        // Use the snapshot to set track time until next event
+        previousMillis = currentMillis;
+     }
   
-  update_fan();
+      update_fan();
+  } else if (index == 1) { // Water level
+    gui.draw_water_level(water_level, menu_index, MENU_ITEMS);
+  } else if (index == 2) { // Light
+    gui.draw_light(light_is_on, menu_index, MENU_ITEMS);
+  }
+  
   delay(50);
 }
 
