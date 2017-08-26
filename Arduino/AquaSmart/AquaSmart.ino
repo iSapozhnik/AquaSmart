@@ -4,6 +4,7 @@
 const int MENU_BUTTON = 2;
 const int MENU_ITEM_BUTTON = 3;
 const int FAN = 4;
+const int LIGHT = 5;
 
 AquaSmartGUI gui;
 AButton menuButton(MENU_BUTTON, true);
@@ -29,7 +30,7 @@ float water_threshold = 32;
 float last_water_temperature = 0.0;
 float temperature_delta = 0.5;
 boolean temp_is_growing = false;
-boolean fanIsOn = false;
+boolean fan_is_on = false;
 int temp_measure_interval = 1000 * 5; // 30 sec interval
 
 int water_level = 35;
@@ -41,6 +42,7 @@ void setup() {
   pinMode(MENU_BUTTON, INPUT);
   pinMode(MENU_ITEM_BUTTON, INPUT);
   pinMode(FAN, OUTPUT);
+  pinMode(LIGHT, OUTPUT);
 
   menuButton.attachClick(menu_click);
   menuItemButton.attachClick(menu_item_click);
@@ -65,8 +67,13 @@ void menu_click() {
 
 void menu_item_click() {
   if (menu_index == 0) {
-    fanIsOn = !fanIsOn;
-    turnFan(fanIsOn);
+    fan_is_on = !fan_is_on;
+    turnFan(fan_is_on);
+  } else if (menu_index == 1) {
+    
+  } else if (menu_index == 2) {
+    light_is_on = !light_is_on;
+    turnLight(light_is_on);
   }
 }
 
@@ -78,14 +85,17 @@ void turnFan(boolean on) {
   } 
 }
 
+void turnLight(boolean on) {
+  if (on) {
+    digitalWrite(LIGHT, HIGH);
+  } else {
+    digitalWrite(LIGHT, LOW);
+  } 
+}
+
 void monitorWaterTemperature() {
   unsigned long currentMillis = millis();
-  Serial.print("currentMillis: ");
-  Serial.println(currentMillis);
-  Serial.print("previousMillis: ");
-  Serial.println(previousMillis);
   if ((unsigned long)(currentMillis - previousMillis) >= temp_measure_interval) {
-    Serial.println("Cnahging temp...");
     if (water_temperature >= 40) {
       water_temperature = water_temperature - 20;
     } else {
@@ -94,12 +104,10 @@ void monitorWaterTemperature() {
     temp_is_growing = water_temperature + temperature_delta >= last_water_temperature;
 
     if (water_temperature >= water_threshold) {
-      Serial.println("Switching fan ON...");
-      fanIsOn = true;
+      fan_is_on = true;
       turnFan(true);
     } else {
-      Serial.println("Switching fan OFF...");
-      fanIsOn = false;
+      fan_is_on = false;
       turnFan(false);
     }
     previousMillis = currentMillis;
@@ -118,7 +126,7 @@ void show_menu_item(int index) {
   monitorWaterTemperature();
   
   if (index == 0) { // Temperature
-    gui.draw_temperature(fanIsOn, water_temperature, temp_is_growing, menu_index, MENU_ITEMS);
+    gui.draw_temperature(fan_is_on, water_temperature, temp_is_growing, menu_index, MENU_ITEMS);
     last_water_temperature = water_temperature;
   } else if (index == 1) { // Water level
     gui.draw_water_level(water_level, menu_index, MENU_ITEMS);
