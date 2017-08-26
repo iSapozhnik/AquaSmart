@@ -2,8 +2,6 @@
 
 AquaSmartGUI gui;
 
-int fan = 0;
-
 boolean startShown = false;
 
 unsigned long previousMillis = 0;
@@ -70,25 +68,21 @@ void show_menu_item(int index) {
   }
 
   if (index == 0) { // Temperature
-    gui.draw_temperature(fanIsOn, water_temperature, temp_is_growing, fan, menu_index, MENU_ITEMS);
+    gui.draw_temperature(fanIsOn, water_temperature, temp_is_growing, menu_index, MENU_ITEMS);
 
     unsigned long currentMillis = millis();
     if ((unsigned long)(currentMillis - previousMillis) >= temp_measure_interval) {
-      
       if (water_temperature >= 40) {
         water_temperature = water_temperature - 20;
       } else {
         water_temperature = water_temperature + 5;
       }
       temp_is_growing = water_temperature + temperature_delta >= last_water_temperature;
-      gui.draw_temperature(fanIsOn, water_temperature, temp_is_growing, fan, menu_index, MENU_ITEMS);
+      gui.draw_temperature(fanIsOn, water_temperature, temp_is_growing, menu_index, MENU_ITEMS);
       last_water_temperature = water_temperature;
-        
-        // Use the snapshot to set track time until next event
-        previousMillis = currentMillis;
-     }
   
-      update_fan();
+      previousMillis = currentMillis;
+    }
   } else if (index == 1) { // Water level
     gui.draw_water_level(water_level, menu_index, MENU_ITEMS);
   } else if (index == 2) { // Light
@@ -108,14 +102,6 @@ void update_menu() {
   menu_index = menu_index + 1;
   if (menu_index > MENU_ITEMS - 1) {
     menu_index = 0;
-  }
-}
-
-//TODO: this should go inside GUI
-void update_fan() {
-  fan++;
-  if (fan == 4) {
-    fan = 0;
   }
 }
 
