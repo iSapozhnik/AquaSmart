@@ -6,7 +6,7 @@ int fan = 0;
 boolean fanIsOn = false;
 boolean startShown = false;
 
-unsigned long previousMillis=0;
+unsigned long previousMillis = 0;
 
 #define MENU_ITEMS 3
 #define MENU_ITEM_DURATION 1100
@@ -62,22 +62,17 @@ void show_menu_item(int index) {
     reset_shown_menu_items();
     shown_menu_items[index] = true;
   }
-//
-//  Serial.print("Time:");
-//  Serial.println(time);
-//  Serial.print("temp_measure_interval:");
-//  Serial.println(temp_measure_interval);
-
-    unsigned long currentMillis = millis();
-    if ((unsigned long)(currentMillis - previousMillis) >= temp_measure_interval) {
-      if (water_temperature >= 40) {
-        water_temperature = water_temperature - 20;
-      } else {
-      
-        water_temperature = water_temperature + 5;
-      }
-
-    gui.draw_temperature(fanIsOn, water_temperature, last_water_temperature, temperature_delta, fan, menu_index, MENU_ITEMS);
+  
+  unsigned long currentMillis = millis();
+  if ((unsigned long)(currentMillis - previousMillis) >= temp_measure_interval) {
+    
+    if (water_temperature >= 40) {
+      water_temperature = water_temperature - 20;
+    } else {
+      water_temperature = water_temperature + 5;
+    }
+    boolean is_tem_growing = water_temperature + temperature_delta >= last_water_temperature;
+    gui.draw_temperature(fanIsOn, water_temperature, is_tem_growing, fan, menu_index, MENU_ITEMS);
     last_water_temperature = water_temperature;
       
       // Use the snapshot to set track time until next event
