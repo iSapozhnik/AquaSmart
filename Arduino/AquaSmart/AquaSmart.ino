@@ -1,6 +1,13 @@
+#include <AButton.h>
 #include <AquaSmartGUI.h>
 
+const int MENU_BUTTON = 2;
+const int MENU_ITEM_BUTTON = 3;
+const int FAN = 4;
+
 AquaSmartGUI gui;
+AButton menuButton(MENU_BUTTON, true);
+AButton menuItemButton(MENU_ITEM_BUTTON, true);
 
 boolean startShown = false;
 
@@ -12,9 +19,6 @@ unsigned long previousMillis = 0;
 const char *menu_items[MENU_ITEMS] = {"TEMPERATURE", "WATER LEVEL", "LIGHT"};
 boolean shown_menu_items[MENU_ITEMS] = {false, false, false};
 int menu_index = 0;
-
-const int MENU_BUTTON = 2;
-const int MENU_ITEM_BUTTON = 3;
 
 boolean lastButton = HIGH; 
 boolean currentButton = LOW;
@@ -35,26 +39,45 @@ void setup() {
   Serial.begin(9600);
   pinMode(MENU_BUTTON, INPUT);
   pinMode(MENU_ITEM_BUTTON, INPUT);
-}
+  pinMode(FAN, OUTPUT);
 
-void printSomething() {
-  Serial.println("Timer");
+  menuButton.attachClick(menu_click);
+  menuItemButton.attachClick(menu_item_click);
 }
 
 void loop() {
+  menuButton.tick();
+  menuItemButton.tick();
+  
   if (!startShown) {
     gui.draw_start(startShown);
     delay(100);
   } else {
 
-    currentButton = debounce(lastButton);
-    if (lastButton == LOW && currentButton == HIGH) {
-      update_menu();
-      fanIsOn = !fanIsOn;
-    }
-    lastButton = currentButton;
-
+//    currentButton = debounce(lastButton);
+//    if (lastButton == LOW && currentButton == HIGH) {
+//      update_menu();
+//      fanIsOn = !fanIsOn;
+//    }
+//    lastButton = currentButton;
+//
     show_menu_item(menu_index);
+  }
+}
+
+void menu_click() {
+  update_menu();
+//  show_menu_item(menu_index);
+}
+
+void menu_item_click() {
+  if (menu_index == 0) {
+    fanIsOn = !fanIsOn;
+    if (fanIsOn) {
+      digitalWrite(FAN, HIGH);
+    } else {
+      digitalWrite(FAN, LOW);
+    }
   }
 }
 
