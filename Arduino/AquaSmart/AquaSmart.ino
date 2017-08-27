@@ -14,12 +14,19 @@ boolean startShown = false;
 
 unsigned long previousMillis = 0;
 
-#define MENU_ITEMS 3
-#define MENU_ITEM_DURATION 1100
+#define MENU_ITEMS 4
+#define MENU_ITEM_DURATION 800
 
-const char *menu_items[MENU_ITEMS] = {"TEMPERATURE", "WATER LEVEL", "LIGHT"};
-boolean shown_menu_items[MENU_ITEMS] = {false, false, false};
+const char *menu_items[MENU_ITEMS] = {"TEMPERATURE", "WATER LEVEL", "LIGHT", "AERATION"};
+boolean shown_menu_items[MENU_ITEMS] = {false, false, false, false};
 int menu_index = 0;
+
+enum FanMode { 
+  Auto, 
+  ManualOff,
+  ManualOn,
+  End
+};
 
 boolean lastButton = HIGH; 
 boolean currentButton = LOW;
@@ -31,6 +38,7 @@ float last_water_temperature = 0.0;
 float temperature_delta = 0.5;
 boolean temp_is_growing = false;
 boolean fan_is_on = false;
+FanMode fan_mode = Auto;
 int temp_measure_interval = 1000 * 5; // 30 sec interval
 
 int water_level = 35;
@@ -67,7 +75,28 @@ void menu_click() {
 
 void menu_item_click() {
   if (menu_index == 0) {
-    fan_is_on = !fan_is_on;
+    int current_value = (int)fan_mode + 1;
+    if (current_value == (int)End) {
+      fan_mode = Auto;
+    } else {
+      fan_mode = (FanMode)current_value;
+    }
+    
+    switch (fan_mode) {
+    case Auto:
+      fan_is_on = water_temperature >= water_threshold;
+      break;
+    case ManualOn:
+      fan_is_on = true;
+      break;
+    case ManualOff:
+      fan_is_on = false;
+      break;
+    default: 
+      // if nothing else matches, do the default
+      // default is optional
+    break;
+  }
     turnFan(fan_is_on);
   } else if (menu_index == 1) {
     
@@ -102,13 +131,15 @@ void monitorWaterTemperature() {
       water_temperature = water_temperature + 5;
     }
     temp_is_growing = water_temperature + temperature_delta >= last_water_temperature;
-
-    if (water_temperature >= water_threshold) {
-      fan_is_on = true;
-      turnFan(true);
-    } else {
-      fan_is_on = false;
-      turnFan(false);
+    
+    if (fan_mode == Auto) {
+      if (water_temperature >= water_threshold) {
+        fan_is_on = true;
+        turnFan(true);
+      } else {
+        fan_is_on = false;
+        turnFan(false);
+      }
     }
     previousMillis = currentMillis;
   }
@@ -126,12 +157,14 @@ void show_menu_item(int index) {
   monitorWaterTemperature();
   
   if (index == 0) { // Temperature
-    gui.draw_temperature(fan_is_on, water_temperature, temp_is_growing, menu_index, MENU_ITEMS);
+    gui.draw_temperature(fan_is_on, fan_mode, water_temperature, temp_is_growing, menu_index, MENU_ITEMS);
     last_water_temperature = water_temperature;
   } else if (index == 1) { // Water level
     gui.draw_water_level(water_level, menu_index, MENU_ITEMS);
   } else if (index == 2) { // Light
     gui.draw_light(light_is_on, menu_index, MENU_ITEMS);
+  } else if (index == 3) { // aeration
+    gui.draw_aeration(false, menu_index, MENU_ITEMS);
   }
 }
 
