@@ -52,6 +52,7 @@ void setup() {
   pinMode(FAN, OUTPUT);
   pinMode(LIGHT, OUTPUT);
 
+  gui.setup();
   menuButton.attachClick(menu_click);
   menuItemButton.attachClick(menu_item_click);
 }
@@ -62,7 +63,7 @@ void loop() {
   
   if (!startShown) {
     gui.draw_start(startShown);
-    delay(100);
+    delay(25);
   } else {
     show_menu_item(menu_index);
     delay(50);
