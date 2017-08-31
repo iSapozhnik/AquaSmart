@@ -14,11 +14,11 @@ boolean startShown = false;
 
 unsigned long previousMillis = 0;
 
-#define MENU_ITEMS 4
+#define MENU_ITEMS 5
 #define MENU_ITEM_DURATION 800
 
-const char *menu_items[MENU_ITEMS] = {"TEMPERATURE", "WATER LEVEL", "LIGHT", "AERATION"};
-boolean shown_menu_items[MENU_ITEMS] = {false, false, false, false};
+const char *menu_items[MENU_ITEMS] = {"TEMPERATURE IN", "WATER LEVEL", "LIGHT", "AERATION","TEMPERATURE OUT"};
+boolean shown_menu_items[MENU_ITEMS] = {false, false, false, false, false};
 int menu_index = 0;
 
 enum FanMode { 
@@ -63,7 +63,7 @@ void loop() {
   
   if (!startShown) {
     gui.draw_start(startShown);
-    delay(25);
+//    delay(10);
   } else {
     show_menu_item(menu_index);
     delay(50);

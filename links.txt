@@ -1,0 +1,5 @@
+https://blog.squix.org/2015/05/esp8266-nodemcu-how-to-create-xbm.html
+https://github.com/squix78/esp8266-oled-ssd1306
+https://github.com/squix78/esp8266-weather-station
+https://blog.squix.org/2016/10/font-creator-now-creates-adafruit-gfx-fonts.html
+https://blog.squix.org/2016/06/esp8266-continuous-delivery-pipeline-push-to-production.html
