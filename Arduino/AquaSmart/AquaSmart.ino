@@ -66,6 +66,7 @@ boolean lastButton = HIGH;
 boolean currentButton = LOW;
 
 // Sensors data
+float outside_temperature = 25.2;
 float water_temperature = 26.4;
 float water_threshold = 32;
 float last_water_temperature = 0.0;
@@ -228,7 +229,7 @@ void show_menu_item(int index) {
   } else if (index == 3) { // aeration
     gui.draw_aeration(false, menu_index, MENU_ITEMS);
   } else if (index == 4) { // out temp
-//    gui.draw_aeration(false, menu_index, MENU_ITEMS);
+    gui.draw_out_temperature(outside_temperature, menu_index, MENU_ITEMS);
   } else if (index == 5) { // settings
     gui.draw_settings(ipAddress, menu_index, MENU_ITEMS);
   }
