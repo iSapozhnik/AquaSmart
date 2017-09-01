@@ -1,5 +1,15 @@
 #include <AButton.h>
 #include <AquaSmartGUI.h>
+#include <UniversalTelegramBot.h>
+#include <ESP8266WiFi.h>
+#include <WiFiClientSecure.h>
+
+//------- WiFi Settings -------
+char ssid[] = "!Tech_D0051036";       // your network SSID (name)
+char password[] = "QDTMKZPB";  // your network key
+
+#define BOT_TOKEN "297345900:AAGgAYyUDRSUxAJHr2Pwr1radExhhu2eJ3o"  // your Bot Token (Get from Botfather)
+#define CHAT_ID "38057730" // Chat ID of where you want the message to go (You can use MyIdBot to get the chat ID)
 
 /*
 
@@ -17,12 +27,18 @@ static const uint8_t D8   = 15;
 static const uint8_t D9   = 3;
 static const uint8_t D10  = 1;
 
+Telegram bot: 
+38057730
+
 */
 
-const int MENU_BUTTON = 2;
-const int MENU_ITEM_BUTTON = 3;
-const int FAN = 0;
-const int LIGHT = 5;
+const int MENU_BUTTON = D4;
+const int MENU_ITEM_BUTTON = D5;
+const int FAN = D3;
+const int LIGHT = D6;
+
+WiFiClientSecure client;
+UniversalTelegramBot bot(BOT_TOKEN, client);
 
 AquaSmartGUI gui;
 AButton menuButton(MENU_BUTTON, true);
@@ -32,11 +48,11 @@ boolean startShown = false;
 
 unsigned long previousMillis = 0;
 
-#define MENU_ITEMS 5
+#define MENU_ITEMS 6
 #define MENU_ITEM_DURATION 800
 
-const char *menu_items[MENU_ITEMS] = {"TEMPERATURE IN", "WATER LEVEL", "LIGHT", "AERATION","TEMPERATURE OUT"};
-boolean shown_menu_items[MENU_ITEMS] = {false, false, false, false, false};
+const char *menu_items[MENU_ITEMS] = {"TEMPERATURE IN", "WATER LEVEL", "LIGHT", "AERATION","TEMPERATURE OUT", "SETTINGS"};
+boolean shown_menu_items[MENU_ITEMS] = {false, false, false, false, false, false};
 int menu_index = 0;
 
 enum FanMode { 
@@ -63,8 +79,10 @@ int water_level = 35;
 
 boolean light_is_on = false;
 
+String ipAddress = "";
+
 void setup() {
-  Serial.begin(9600);
+  Serial.begin(115200);
   pinMode(MENU_BUTTON, INPUT);
   pinMode(MENU_ITEM_BUTTON, INPUT);
   pinMode(FAN, OUTPUT);
@@ -73,6 +91,31 @@ void setup() {
   gui.setup();
   menuButton.attachClick(menu_click);
   menuItemButton.attachClick(menu_item_click);
+
+    // Set WiFi to station mode and disconnect from an AP if it was Previously
+  // connected
+  WiFi.mode(WIFI_STA);
+  WiFi.disconnect();
+  delay(100);
+
+  // Attempt to connect to Wifi network:
+  Serial.print("Connecting Wifi: ");
+  Serial.println(ssid);
+  WiFi.begin(ssid, password);
+  while (WiFi.status() != WL_CONNECTED) {
+    gui.draw_loading();
+    Serial.print(".");
+    delay(500);
+  }
+  Serial.println("");
+  Serial.println("WiFi connected");
+  Serial.println("IP address: ");
+  IPAddress ip = WiFi.localIP();
+  Serial.println(ip);
+
+  ipAddress = ip.toString();
+  gui.draw_end_loading();
+  startShown = true;
 }
 
 void loop() {
@@ -84,7 +127,7 @@ void loop() {
 //    delay(10);
   } else {
     show_menu_item(menu_index);
-    delay(50);
+    delay(100);
   }
 }
 
@@ -134,7 +177,7 @@ void turnFan(boolean on) {
 }
 
 void turnLight(boolean on) {
-  if (on) {
+  if (on) { //cant get why
     digitalWrite(LIGHT, HIGH);
   } else {
     digitalWrite(LIGHT, LOW);
@@ -184,6 +227,10 @@ void show_menu_item(int index) {
     gui.draw_light(light_is_on, menu_index, MENU_ITEMS);
   } else if (index == 3) { // aeration
     gui.draw_aeration(false, menu_index, MENU_ITEMS);
+  } else if (index == 4) { // out temp
+//    gui.draw_aeration(false, menu_index, MENU_ITEMS);
+  } else if (index == 5) { // settings
+    gui.draw_settings(ipAddress, menu_index, MENU_ITEMS);
   }
 }
 
@@ -206,6 +253,18 @@ boolean debounce(boolean last) {
     delay(5);
     current = digitalRead(MENU_BUTTON);
     return current;
+  }
+}
+
+void sendTelegramMessage() {
+  String message = "SSID:  ";
+  message.concat(ssid);
+  message.concat("\n");
+  message.concat("IP: ");
+  message.concat(ipAddress);
+  message.concat("\n");
+  if(bot.sendMessage(CHAT_ID, "It's too hot... Switching on fan!", "Markdown")){
+    Serial.println("TELEGRAM Successfully sent");
   }
 }
 
