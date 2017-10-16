@@ -1,8 +1,13 @@
+#include <DallasTemperature.h>
+
+#include <dht.h>
+
 #include <AButton.h>
 #include <AquaSmartGUI.h>
 #include <UniversalTelegramBot.h>
 #include <ESP8266WiFi.h>
 #include <WiFiClientSecure.h>
+#include <dht.h>
 
 //------- WiFi Settings -------
 char ssid[] = "!Tech_D0051036";       // your network SSID (name)
@@ -37,6 +42,13 @@ const int MENU_ITEM_BUTTON = D5;
 const int FAN = D3;
 const int LIGHT = D6;
 
+#define ONE_WIRE_BUS D8  // DS18B20 pin
+OneWire oneWire(ONE_WIRE_BUS);
+DallasTemperature DS18B20(&oneWire);
+
+dht DHT;
+
+#define DHT11_PIN D7
 WiFiClientSecure client;
 UniversalTelegramBot bot(BOT_TOKEN, client);
 
@@ -51,7 +63,7 @@ unsigned long previousMillis = 0;
 #define MENU_ITEMS 6
 #define MENU_ITEM_DURATION 800
 
-const char *menu_items[MENU_ITEMS] = {"TEMPERATURE IN", "WATER LEVEL", "LIGHT", "AERATION","TEMPERATURE OUT", "SETTINGS"};
+const char *menu_items[MENU_ITEMS] = {"TEMPERATURE IN", "WATER LEVEL", "LIGHT", "AERATION", "TEMPERATURE OUT", "SETTINGS"};
 boolean shown_menu_items[MENU_ITEMS] = {false, false, false, false, false, false};
 int menu_index = 0;
 
@@ -70,8 +82,12 @@ float outside_temperature = 25.2;
 float water_temperature = 26.4;
 float water_threshold = 32;
 float last_water_temperature = 0.0;
+float last_outside_temperature = 0.0;
 float temperature_delta = 0.5;
+float outside_temperature_delta = 0.1;
+float outside_humidity = 0.0;
 boolean temp_is_growing = false;
+boolean outside_temp_is_growing = false;
 boolean fan_is_on = false;
 FanMode fan_mode = Auto;
 int temp_measure_interval = 1000 * 5; // 30 sec interval
@@ -88,7 +104,7 @@ void setup() {
   pinMode(MENU_ITEM_BUTTON, INPUT);
   pinMode(FAN, OUTPUT);
   pinMode(LIGHT, OUTPUT);
-
+  
   gui.setup();
   menuButton.attachClick(menu_click);
   menuItemButton.attachClick(menu_item_click);
@@ -120,6 +136,7 @@ void setup() {
 }
 
 void loop() {
+  
   menuButton.tick();
   menuItemButton.tick();
   
@@ -178,21 +195,28 @@ void turnFan(boolean on) {
 }
 
 void turnLight(boolean on) {
-  if (on) { //cant get why
+  if (!on) { //cant get why
     digitalWrite(LIGHT, HIGH);
   } else {
     digitalWrite(LIGHT, LOW);
   } 
 }
 
-void monitorWaterTemperature() {
+void monitorTemperature() {
   unsigned long currentMillis = millis();
   if ((unsigned long)(currentMillis - previousMillis) >= temp_measure_interval) {
-    if (water_temperature >= 40) {
-      water_temperature = water_temperature - 20;
-    } else {
-      water_temperature = water_temperature + 5;
-    }
+
+      int chk = DHT.read22(DHT11_PIN);
+  if (DHT.temperature > -10) {
+    outside_temperature = DHT.temperature;
+  }
+    outside_humidity = DHT.humidity;
+    outside_temp_is_growing = outside_temperature > last_outside_temperature;
+
+    DS18B20.requestTemperatures(); 
+    water_temperature = DS18B20.getTempCByIndex(0);
+    Serial.println(water_temperature);
+    
     temp_is_growing = water_temperature + temperature_delta >= last_water_temperature;
     
     if (fan_mode == Auto) {
@@ -217,7 +241,7 @@ void show_menu_item(int index) {
     shown_menu_items[index] = true;
   }
 
-  monitorWaterTemperature();
+  monitorTemperature();
   
   if (index == 0) { // Temperature
     gui.draw_temperature(fan_is_on, fan_mode, water_temperature, temp_is_growing, menu_index, MENU_ITEMS);
@@ -229,7 +253,9 @@ void show_menu_item(int index) {
   } else if (index == 3) { // aeration
     gui.draw_aeration(false, menu_index, MENU_ITEMS);
   } else if (index == 4) { // out temp
-    gui.draw_out_temperature(outside_temperature, menu_index, MENU_ITEMS);
+    
+    gui.draw_out_temperature(outside_temperature, outside_temp_is_growing, outside_humidity, menu_index, MENU_ITEMS);
+    last_outside_temperature = outside_temperature;
   } else if (index == 5) { // settings
     gui.draw_settings(ipAddress, menu_index, MENU_ITEMS);
   }
